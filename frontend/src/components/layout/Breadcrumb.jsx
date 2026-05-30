@@ -6,6 +6,7 @@ const SEGMENT_LABELS = {
   new: "New Patient",
   edit: "Edit",
   opd: "OPD / Consultations",
+  consultation: "Consultation",
   laboratory: "Laboratory",
   pharmacy: "Pharmacy",
   dispensing: "Dispensing Pharmacy",

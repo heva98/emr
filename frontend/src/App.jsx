@@ -8,6 +8,8 @@ import LoginPage from "./pages/LoginPage";
 import PatientListPage from "./modules/patients/PatientListPage";
 import PatientRegistrationForm from "./modules/patients/PatientRegistrationForm";
 import PatientDetailPage from "./modules/patients/PatientDetailPage";
+import OPDQueuePage from "./modules/opd/OPDQueuePage";
+import ConsultationPage from "./modules/opd/ConsultationPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -39,7 +41,8 @@ export default function App() {
               <Route path="/registration/:id/edit" element={<PatientRegistrationForm />} />
               <Route path="/registration/:id" element={<PatientDetailPage />} />
 
-              <Route path="/opd" element={<PlaceholderPage title="OPD / Consultations" />} />
+              <Route path="/opd" element={<OPDQueuePage />} />
+              <Route path="/opd/consultation/:visitId" element={<ConsultationPage />} />
               <Route path="/laboratory" element={<PlaceholderPage title="Laboratory" />} />
               <Route path="/pharmacy/dispensing" element={<PlaceholderPage title="Dispensing Pharmacy" />} />
               <Route path="/pharmacy/store" element={<PlaceholderPage title="Main Store" />} />
