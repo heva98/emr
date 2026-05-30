@@ -18,7 +18,7 @@ const STEPS = [
 const STEP_FIELDS = {
   0: ['first_name', 'last_name', 'date_of_birth', 'gender'],
   1: ['phone_primary', 'address_street', 'address_city', 'address_district', 'address_region'],
-  2: ['next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship'],
+  2: [],
   3: [],
 };
 
@@ -269,29 +269,28 @@ function Step2({ register, errors }) {
 function Step3({ register, errors }) {
   return (
     <div className="space-y-5">
-      <p className="text-sm text-gray-500">Emergency contact who should be notified if needed.</p>
-      <Field label="Full Name" required error={errors.next_of_kin_name}>
+      <p className="text-sm text-gray-500">Emergency contact who should be notified if needed (optional).</p>
+      <Field label="Full Name" error={errors.next_of_kin_name}>
         <input
-          {...register('next_of_kin_name', { required: 'Name is required' })}
-          className={errors.next_of_kin_name ? inputErr : inputCls}
+          {...register('next_of_kin_name')}
+          className={inputCls}
           placeholder="Jane Doe"
         />
       </Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Phone Number" required error={errors.next_of_kin_phone}>
+        <Field label="Phone Number" error={errors.next_of_kin_phone}>
           <input
             {...register('next_of_kin_phone', {
-              required: 'Phone is required',
               minLength: { value: 9, message: 'Enter a valid phone number' },
             })}
             className={errors.next_of_kin_phone ? inputErr : inputCls}
             placeholder="+255 700 000 000"
           />
         </Field>
-        <Field label="Relationship" required error={errors.next_of_kin_relationship}>
+        <Field label="Relationship" error={errors.next_of_kin_relationship}>
           <input
-            {...register('next_of_kin_relationship', { required: 'Relationship is required' })}
-            className={errors.next_of_kin_relationship ? inputErr : inputCls}
+            {...register('next_of_kin_relationship')}
+            className={inputCls}
             placeholder="e.g. Mother, Spouse, Sibling"
           />
         </Field>

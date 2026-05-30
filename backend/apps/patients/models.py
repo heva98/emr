@@ -36,9 +36,9 @@ class Patient(models.Model):
     address_city = models.CharField(max_length=100)
     address_district = models.CharField(max_length=100)
     address_region = models.CharField(max_length=100)
-    next_of_kin_name = models.CharField(max_length=200)
-    next_of_kin_phone = models.CharField(max_length=20)
-    next_of_kin_relationship = models.CharField(max_length=100)
+    next_of_kin_name = models.CharField(max_length=200, blank=True)
+    next_of_kin_phone = models.CharField(max_length=20, blank=True)
+    next_of_kin_relationship = models.CharField(max_length=100, blank=True)
     blood_group = models.CharField(
         max_length=10, choices=BloodGroup.choices, default=BloodGroup.UNKNOWN
     )
