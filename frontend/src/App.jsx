@@ -5,6 +5,9 @@ import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import DevToolbar from "./components/dev/DevToolbar";
 import LoginPage from "./pages/LoginPage";
+import PatientListPage from "./modules/patients/PatientListPage";
+import PatientRegistrationForm from "./modules/patients/PatientRegistrationForm";
+import PatientDetailPage from "./modules/patients/PatientDetailPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -29,8 +32,13 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/registration" replace />} />
-              <Route path="/registration" element={<PlaceholderPage title="Patient Registration" />} />
-              <Route path="/registration/:id" element={<PlaceholderPage title="Patient Record" />} />
+
+              {/* Patient Registration — specific routes before :id */}
+              <Route path="/registration" element={<PatientListPage />} />
+              <Route path="/registration/new" element={<PatientRegistrationForm />} />
+              <Route path="/registration/:id/edit" element={<PatientRegistrationForm />} />
+              <Route path="/registration/:id" element={<PatientDetailPage />} />
+
               <Route path="/opd" element={<PlaceholderPage title="OPD / Consultations" />} />
               <Route path="/laboratory" element={<PlaceholderPage title="Laboratory" />} />
               <Route path="/pharmacy/dispensing" element={<PlaceholderPage title="Dispensing Pharmacy" />} />

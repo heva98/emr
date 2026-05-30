@@ -3,6 +3,8 @@ import { ChevronRight, Home } from "lucide-react";
 
 const SEGMENT_LABELS = {
   registration: "Patient Registration",
+  new: "New Patient",
+  edit: "Edit",
   opd: "OPD / Consultations",
   laboratory: "Laboratory",
   pharmacy: "Pharmacy",
