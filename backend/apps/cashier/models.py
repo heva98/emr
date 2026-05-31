@@ -72,6 +72,15 @@ class Invoice(models.Model):
             )
             seq = int(last.invoice_number.split('-')[-1]) + 1 if last else 1
             self.invoice_number = f'INV-{year}-{seq:05d}'
+        # Always derive computed fields so callers only need to set subtotal / discount / amount_paid
+        self.total_amount = max(0, self.subtotal - self.discount_amount)
+        self.balance_due = max(0, self.total_amount - self.amount_paid)
+        if (
+            self.balance_due == 0
+            and self.amount_paid > 0
+            and self.status not in (self.Status.CANCELLED, self.Status.PAID)
+        ):
+            self.status = self.Status.PAID
         super().save(*args, **kwargs)
 
 
@@ -145,7 +154,4 @@ def _payment_post_save(sender, instance, created, **kwargs):
         )
         invoice = Invoice.objects.select_for_update().get(pk=instance.invoice_id)
         invoice.amount_paid = total_paid
-        invoice.balance_due = max(0, invoice.total_amount - total_paid)
-        if invoice.balance_due == 0:
-            invoice.status = Invoice.Status.PAID
-        invoice.save()
+        invoice.save()  # save() auto-derives balance_due and flips status to PAID

@@ -1,6 +1,21 @@
 from rest_framework import serializers
 
+from apps.patients.models import Patient, PatientVisit
+
 from .models import Invoice, InvoiceItem, Payment, ServiceCatalog
+
+
+class PatientBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Patient
+        fields = ['id', 'patient_id', 'first_name', 'middle_name', 'last_name',
+                  'date_of_birth', 'gender']
+
+
+class VisitBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientVisit
+        fields = ['id', 'visit_number', 'visit_date', 'visit_type', 'status']
 
 
 class ServiceCatalogSerializer(serializers.ModelSerializer):
@@ -38,13 +53,17 @@ class PaymentSerializer(serializers.ModelSerializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     items = InvoiceItemSerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
-    patient_name = serializers.SerializerMethodField()
+    patient_detail = PatientBriefSerializer(source='patient', read_only=True)
+    visit_detail = VisitBriefSerializer(source='visit', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
         fields = [
-            'id', 'invoice_number', 'patient', 'patient_name', 'visit',
-            'created_by', 'created_at',
+            'id', 'invoice_number',
+            'patient', 'patient_detail',
+            'visit', 'visit_detail',
+            'created_by', 'created_by_name', 'created_at',
             'subtotal', 'discount_amount', 'total_amount',
             'amount_paid', 'balance_due', 'status', 'notes',
             'items', 'payments',
@@ -54,9 +73,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'subtotal', 'total_amount', 'amount_paid', 'balance_due',
         ]
 
-    def get_patient_name(self, obj):
-        p = obj.patient
-        return ' '.join(x for x in [p.first_name, p.middle_name or '', p.last_name] if x)
+    def get_created_by_name(self, obj):
+        u = obj.created_by
+        return f"{u.first_name} {u.last_name}".strip() or u.username
 
 
 class InvoiceCreateSerializer(serializers.ModelSerializer):

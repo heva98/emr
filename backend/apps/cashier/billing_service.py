@@ -85,9 +85,6 @@ def generate_invoice_items(visit_id):
     except Consultation.DoesNotExist:
         pass
 
-    # Recalculate invoice totals
-    subtotal = sum(i.subtotal for i in invoice.items.all())
-    invoice.subtotal = subtotal
-    invoice.total_amount = max(0, subtotal - invoice.discount_amount)
-    invoice.balance_due = max(0, invoice.total_amount - invoice.amount_paid)
+    # Recalculate — save() derives total_amount and balance_due automatically
+    invoice.subtotal = sum(i.subtotal for i in invoice.items.all())
     invoice.save()

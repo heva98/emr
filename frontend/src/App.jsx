@@ -17,6 +17,13 @@ import DispensingQueuePage from "./modules/pharmacy/dispensing/DispensingQueuePa
 import DispensingDetailPage from "./modules/pharmacy/dispensing/DispensingDetailPage";
 import StoreOverviewPage from "./modules/pharmacy/store/StoreOverviewPage";
 import ReceiveStockPage from "./modules/pharmacy/store/ReceiveStockPage";
+import RoomManagementPage from "./modules/rooms/RoomManagementPage";
+import AssignmentsListPage from "./modules/rooms/AssignmentsListPage";
+import DepartmentPage from "./modules/rooms/DepartmentPage";
+import CashierQueuePage from "./modules/cashier/CashierQueuePage";
+import InvoicePage from "./modules/cashier/InvoicePage";
+import ReceiptPage from "./modules/cashier/ReceiptPage";
+import ServiceCatalogPage from "./modules/cashier/ServiceCatalogPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -41,6 +48,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             {/* Print pages — protected but no sidebar */}
             <Route path="/laboratory/order/:id/report" element={<LabResultReport />} />
+            <Route path="/cashier/invoice/:id/receipt" element={<ReceiptPage />} />
 
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/registration" replace />} />
@@ -59,8 +67,12 @@ export default function App() {
               <Route path="/pharmacy/dispensing/:prescriptionId" element={<DispensingDetailPage />} />
               <Route path="/pharmacy/store" element={<StoreOverviewPage />} />
               <Route path="/pharmacy/store/receive" element={<ReceiveStockPage />} />
-              <Route path="/cashier" element={<PlaceholderPage title="Cashier / Billing" />} />
-              <Route path="/rooms" element={<PlaceholderPage title="Room Management" />} />
+              <Route path="/cashier" element={<CashierQueuePage />} />
+              <Route path="/cashier/invoice/:id" element={<InvoicePage />} />
+              <Route path="/cashier/catalog" element={<ServiceCatalogPage />} />
+              <Route path="/rooms" element={<RoomManagementPage />} />
+              <Route path="/rooms/assignments" element={<AssignmentsListPage />} />
+              <Route path="/rooms/departments" element={<DepartmentPage />} />
               <Route path="/reports" element={<PlaceholderPage title="Reports & Analytics" />} />
               <Route path="/admin/users" element={<PlaceholderPage title="User Management" />} />
             </Route>
