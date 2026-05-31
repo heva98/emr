@@ -24,6 +24,7 @@ import CashierQueuePage from "./modules/cashier/CashierQueuePage";
 import InvoicePage from "./modules/cashier/InvoicePage";
 import ReceiptPage from "./modules/cashier/ReceiptPage";
 import ServiceCatalogPage from "./modules/cashier/ServiceCatalogPage";
+import ReportsPage from "./modules/reports/ReportsPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -73,7 +74,7 @@ export default function App() {
               <Route path="/rooms" element={<RoomManagementPage />} />
               <Route path="/rooms/assignments" element={<AssignmentsListPage />} />
               <Route path="/rooms/departments" element={<DepartmentPage />} />
-              <Route path="/reports" element={<PlaceholderPage title="Reports & Analytics" />} />
+              <Route path="/reports" element={<ReportsPage />} />
               <Route path="/admin/users" element={<PlaceholderPage title="User Management" />} />
             </Route>
           </Route>
