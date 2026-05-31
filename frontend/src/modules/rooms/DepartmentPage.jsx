@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Building2, Pencil, Plus, Trash2, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { roomsService } from '../../services/roomsService';
+import RoomsNav from './components/RoomsNav';
 
 const DEPT_OPTIONS = [
   'OPD', 'LABORATORY', 'PHARMACY', 'RADIOLOGY', 'WARD', 'ADMINISTRATION', 'OTHER',
@@ -104,6 +105,8 @@ export default function DepartmentPage() {
 
   return (
     <div className="space-y-5">
+      <RoomsNav />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

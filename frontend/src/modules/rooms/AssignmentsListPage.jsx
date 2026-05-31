@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CalendarDays, Filter, RefreshCw, UserRound, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { roomsService } from '../../services/roomsService';
+import RoomsNav from './components/RoomsNav';
 
 const SHIFT_LABELS = {
   MORNING: 'Morning',
@@ -91,6 +92,8 @@ export default function AssignmentsListPage() {
 
   return (
     <div className="space-y-5">
+      <RoomsNav />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

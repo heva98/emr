@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Building2, DoorOpen, Filter, RefreshCw, UserRound, X } from 'lucide-react';
+import { Building2, DoorOpen, Filter, Pencil, Plus, RefreshCw, UserRound, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { roomsService } from '../../services/roomsService';
 import AssignDoctorModal from './components/AssignDoctorModal';
+import RoomFormModal from './components/RoomFormModal';
+import RoomsNav from './components/RoomsNav';
 
 const ROOM_TYPE_LABELS = {
   CONSULTATION: 'Consultation',
@@ -33,6 +35,7 @@ export default function RoomManagementPage() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignRoom, setAssignRoom] = useState(null);
+  const [roomForm, setRoomForm] = useState(null); // null | 'new' | room object
 
   const [filterDept, setFilterDept] = useState('');
   const [filterFloor, setFilterFloor] = useState('');
@@ -80,23 +83,37 @@ export default function RoomManagementPage() {
   };
   const hasFilters = filterDept || filterFloor || filterAvail !== '';
 
+  const closeRoomForm = () => setRoomForm(null);
+  const handleRoomFormSuccess = () => { closeRoomForm(); fetchData(); };
+
   return (
     <div className="space-y-5">
+      <RoomsNav />
+
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-800">Room Management</h1>
+          <h1 className="text-xl font-semibold text-gray-800">Rooms</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {rooms.length} room{rooms.length !== 1 ? 's' : ''} shown
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          className="flex items-center gap-1.5 text-xs font-medium text-primary border border-primary rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchData}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setRoomForm('new')}
+            className="flex items-center gap-1.5 text-sm font-medium bg-primary text-white rounded-lg px-4 py-2 hover:bg-primary-dark transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Room
+          </button>
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -138,7 +155,7 @@ export default function RoomManagementPage() {
       {loading ? (
         <RoomGridSkeleton />
       ) : rooms.length === 0 ? (
-        <EmptyState hasFilters={hasFilters} onClear={clearFilters} />
+        <EmptyState hasFilters={hasFilters} onClear={clearFilters} onAdd={() => setRoomForm('new')} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {rooms.map((room) => (
@@ -147,12 +164,23 @@ export default function RoomManagementPage() {
               room={room}
               onAssign={() => setAssignRoom(room)}
               onUnassign={handleUnassign}
+              onEdit={() => setRoomForm(room)}
             />
           ))}
         </div>
       )}
 
-      {/* Assign modal */}
+      {/* Room create/edit modal */}
+      {roomForm !== null && (
+        <RoomFormModal
+          room={roomForm === 'new' ? null : roomForm}
+          departments={departments}
+          onClose={closeRoomForm}
+          onSuccess={handleRoomFormSuccess}
+        />
+      )}
+
+      {/* Assign doctor modal */}
       {assignRoom && (
         <AssignDoctorModal
           room={assignRoom}
@@ -164,7 +192,7 @@ export default function RoomManagementPage() {
   );
 }
 
-function RoomCard({ room, onAssign, onUnassign }) {
+function RoomCard({ room, onAssign, onUnassign, onEdit }) {
   const [hovered, setHovered] = useState(false);
 
   const statusPill = room.is_available
@@ -220,18 +248,25 @@ function RoomCard({ room, onAssign, onUnassign }) {
       {/* Hover overlay actions */}
       {hovered && (
         <div className="absolute inset-x-0 bottom-0 flex rounded-b-xl overflow-hidden">
+          <button
+            onClick={onEdit}
+            className="flex-1 py-2.5 text-xs font-semibold bg-gray-700 text-white hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </button>
           {room.is_available ? (
             <button
               onClick={onAssign}
-              className="flex-1 py-2.5 text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 border-l border-white/20"
             >
               <UserRound className="w-3.5 h-3.5" />
-              Assign Doctor
+              Assign
             </button>
           ) : (
             <button
               onClick={() => room.assigned_doctor && onUnassign(room.assigned_doctor.assignment_id)}
-              className="flex-1 py-2.5 text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center gap-1.5 border-l border-white/20"
             >
               <X className="w-3.5 h-3.5" />
               Unassign
@@ -276,16 +311,21 @@ function RoomGridSkeleton() {
   );
 }
 
-function EmptyState({ hasFilters, onClear }) {
+function EmptyState({ hasFilters, onClear, onAdd }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-20 text-center">
       <DoorOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
       <p className="text-gray-500 font-medium">
-        {hasFilters ? 'No rooms match the current filters.' : 'No rooms found.'}
+        {hasFilters ? 'No rooms match the current filters.' : 'No rooms yet.'}
       </p>
-      {hasFilters && (
+      {hasFilters ? (
         <button onClick={onClear} className="mt-2 text-sm text-primary underline">
           Clear filters
+        </button>
+      ) : (
+        <button onClick={onAdd} className="mt-3 flex items-center gap-1.5 text-sm font-medium bg-primary text-white rounded-lg px-4 py-2 mx-auto hover:bg-primary-dark">
+          <Plus className="w-4 h-4" />
+          Add your first room
         </button>
       )}
     </div>

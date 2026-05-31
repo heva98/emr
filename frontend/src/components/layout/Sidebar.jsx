@@ -7,6 +7,8 @@ import {
   Package,
   Receipt,
   BedDouble,
+  CalendarDays,
+  Building2,
   BarChart2,
   Settings,
   ChevronLeft,
@@ -72,14 +74,31 @@ const NAV_GROUPS = [
     ],
   },
   {
-    group: "ADMINISTRATION",
+    group: "ROOMS",
     items: [
       {
-        label: "Room Management",
+        label: "Rooms",
         to: "/rooms",
         icon: BedDouble,
         roles: ["ADMIN"],
       },
+      {
+        label: "Assignments",
+        to: "/rooms/assignments",
+        icon: CalendarDays,
+        roles: ["ADMIN"],
+      },
+      {
+        label: "Departments",
+        to: "/rooms/departments",
+        icon: Building2,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    group: "ADMINISTRATION",
+    items: [
       {
         label: "Reports & Analytics",
         to: "/reports",
