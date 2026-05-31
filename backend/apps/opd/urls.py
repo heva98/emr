@@ -9,6 +9,7 @@ from .views import (
     ReferralViewSet,
     TriageViewSet,
     VisitContextView,
+    VisitTimelineView,
 )
 
 router = DefaultRouter()
@@ -23,5 +24,6 @@ urlpatterns = [
     path('queue/', QueueView.as_view(), name='queue'),
     path('stats/', OPDStatsView.as_view(), name='stats'),
     path('visit-context/<int:visit_id>/', VisitContextView.as_view(), name='visit-context'),
+    path('visit-timeline/<int:visit_id>/', VisitTimelineView.as_view(), name='visit-timeline'),
     path('icd10/', ICD10SearchView.as_view(), name='icd10-search'),
 ]

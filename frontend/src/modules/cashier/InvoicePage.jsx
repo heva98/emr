@@ -10,6 +10,7 @@ import InvoiceStatusBadge from './components/InvoiceStatusBadge';
 import ServiceTypeBadge from './components/ServiceTypeBadge';
 import PaymentMethodBadge from './components/PaymentMethodBadge';
 import { fmtTZS, fmtDate, fmtDateTime, fmtTime, getAge } from './utils';
+import PatientVisitHeader from '../../components/PatientVisitHeader';
 
 const inp = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent';
 
@@ -517,6 +518,25 @@ export default function InvoicePage() {
           {fmtDateTime(invoice.created_at)}
         </div>
       </div>
+
+      {/* Patient + Visit header */}
+      {invoice.patient_detail && (
+        <PatientVisitHeader
+          patient={{
+            patient_id: invoice.patient_detail.patient_id,
+            first_name: invoice.patient_detail.first_name,
+            middle_name: invoice.patient_detail.middle_name,
+            last_name: invoice.patient_detail.last_name,
+            date_of_birth: invoice.patient_detail.date_of_birth,
+            gender: invoice.patient_detail.gender,
+          }}
+          visit={{
+            visit_number: invoice.visit_detail?.visit_number,
+            visit_date: invoice.visit_detail?.visit_date,
+            status: invoice.status,
+          }}
+        />
+      )}
 
       {/* Two-column layout */}
       <div className="flex flex-col lg:flex-row gap-5 items-start">

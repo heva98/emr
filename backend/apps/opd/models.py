@@ -148,3 +148,14 @@ def _referral_post_save(sender, instance, created, **kwargs):
             visit = instance.consultation.visit
             visit.status = new_status
             visit.save()
+
+        if instance.referred_to == 'CASHIER':
+            from apps.cashier.models import Invoice
+            visit = instance.consultation.visit
+            Invoice.objects.get_or_create(
+                visit=visit,
+                defaults={
+                    'patient': visit.patient,
+                    'created_by': instance.consultation.doctor,
+                },
+            )

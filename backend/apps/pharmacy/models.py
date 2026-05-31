@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 
@@ -74,6 +76,29 @@ class StockItem(models.Model):
         return f"{self.drug.name} — Batch {self.batch_number} ({self.location})"
 
 
+def _notify_low_stock(stock_item):
+    from django.contrib.auth import get_user_model
+    from apps.users.models import Notification
+
+    User = get_user_model()
+    msg = (
+        f"Low stock alert: {stock_item.drug.name} {stock_item.drug.strength} — "
+        f"{stock_item.quantity_in_stock} {stock_item.drug.unit_of_measure} remaining "
+        f"(reorder level: {stock_item.drug.reorder_level})."
+    )
+    recipients = User.objects.filter(
+        role__in=[User.Role.PHARMACIST, User.Role.ADMIN], is_active=True
+    )
+    Notification.objects.bulk_create([
+        Notification(
+            user=u,
+            message=msg,
+            notification_type=Notification.NotificationType.LOW_STOCK,
+        )
+        for u in recipients
+    ])
+
+
 class StockMovement(models.Model):
     class MovementType(models.TextChoices):
         RECEIVE = 'RECEIVE', 'Receive'
@@ -110,6 +135,13 @@ class StockMovement(models.Model):
             StockItem.objects.filter(pk=self.stock_item_id).update(
                 quantity_in_stock=models.F('quantity_in_stock') + self.quantity
             )
+            # Notify pharmacists/admin if stock falls at or below reorder level
+            updated = StockItem.objects.select_related('drug').get(pk=self.stock_item_id)
+            if (
+                self.quantity < 0
+                and updated.quantity_in_stock <= updated.drug.reorder_level
+            ):
+                _notify_low_stock(updated)
 
 
 class Prescription(models.Model):

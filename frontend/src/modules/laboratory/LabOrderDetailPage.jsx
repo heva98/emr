@@ -10,6 +10,7 @@ import { labService } from '../../services/labService';
 import PriorityBadge from './components/PriorityBadge';
 import LabStatusBadge from './components/LabStatusBadge';
 import FlagBadge, { isCritical } from './components/FlagBadge';
+import PatientVisitHeader from '../../components/PatientVisitHeader';
 
 const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent';
 const ta  = `${inp} resize-none`;
@@ -337,7 +338,21 @@ export default function LabOrderDetailPage() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Patient + Visit header */}
+      <PatientVisitHeader
+        patient={{
+          patient_id: p?.patient_id,
+          name: p?.name,
+          age: p?.age,
+          gender: p?.gender,
+        }}
+        visit={{
+          visit_number: order.visit_number,
+          status: order.status,
+        }}
+      />
+
+      {/* Order metadata bar */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <button
@@ -352,14 +367,8 @@ export default function LabOrderDetailPage() {
               <PriorityBadge priority={order.priority} />
               <LabStatusBadge status={order.status} />
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              {p?.name} · <span className="font-mono text-xs text-gray-400">{p?.patient_id}</span>
-              {p?.age != null && <> · {p.age} yrs</>}
-              {p?.gender_display && <> · {p.gender_display}</>}
-            </p>
             <p className="text-xs text-gray-400 mt-0.5">
-              Visit: <span className="font-mono">{order.visit_number}</span>
-              {' · '}Ordered by {order.ordered_by_name}
+              Ordered by {order.ordered_by_name}
               {' · '}{fmtDate(order.ordered_at)}
             </p>
             {order.clinical_notes && (

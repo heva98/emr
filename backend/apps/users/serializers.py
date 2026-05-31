@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import CustomUser
+from .models import CustomUser, Notification
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -28,3 +28,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return obj.get_full_name()
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "message", "notification_type", "is_read", "created_at"]
+        read_only_fields = ["id", "message", "notification_type", "created_at"]

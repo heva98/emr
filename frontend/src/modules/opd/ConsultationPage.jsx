@@ -11,6 +11,8 @@ import { opdService } from '../../services/opdService';
 import StatusBadge from '../patients/components/StatusBadge';
 import InitialsAvatar from '../patients/components/InitialsAvatar';
 import LabOrderFormModal from '../laboratory/components/LabOrderFormModal';
+import PrescriptionFormModal from './components/PrescriptionFormModal';
+import PatientVisitHeader from '../../components/PatientVisitHeader';
 
 // ── Review of Systems data ────────────────────────────────────────────────────
 const ROS_SYSTEMS = [
@@ -265,7 +267,7 @@ const REFERRAL_OPTIONS = [
   { value: 'RADIOLOGY', label: 'Radiology' },
 ];
 
-function ReferralDropdown({ consultationId, disabled, onLabRefer }) {
+function ReferralDropdown({ consultationId, disabled, onLabRefer, onRxRefer }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(null);
   const ref = useRef(null);
@@ -282,6 +284,10 @@ function ReferralDropdown({ consultationId, disabled, onLabRefer }) {
     setOpen(false);
     if (type === 'LAB') {
       onLabRefer?.();
+      return;
+    }
+    if (type === 'PHARMACY') {
+      onRxRefer?.();
       return;
     }
     setSending(type);
@@ -338,6 +344,7 @@ export default function ConsultationPage() {
   const [saving, setSaving] = useState(false);
   const [previousVisitsOpen, setPreviousVisitsOpen] = useState(false);
   const [labModalOpen, setLabModalOpen] = useState(false);
+  const [rxModalOpen, setRxModalOpen]   = useState(false);
 
   // ROS and diagnosis lists managed outside react-hook-form
   const [rosSelected, setRosSelected] = useState(new Set());
@@ -587,16 +594,33 @@ export default function ConsultationPage() {
 
       {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
       <div className="flex-1 min-w-0">
+        {/* Shared patient+visit header */}
+        <div className="mb-5">
+          <PatientVisitHeader
+            patient={{
+              full_name: patient?.full_name,
+              patient_id: patient?.patient_id,
+              age,
+              gender: patient?.gender,
+              photo: patient?.photo,
+              allergies: patient?.allergies,
+              chronic_conditions: patient?.chronic_conditions,
+            }}
+            visit={{
+              visit_number: visit?.visit_number,
+              visit_date: visit?.visit_date,
+              status: visit?.status,
+            }}
+          />
+        </div>
+
         {/* Page header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4 mb-5 flex items-center justify-between">
           <div>
             <h1 className="text-base font-bold text-gray-800">Consultation</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {visit?.visit_number} · {visit?.visit_date}
-              {isSignedOff && (
-                <span className="ml-2 text-green-600 font-semibold">✓ Signed Off</span>
-              )}
-            </p>
+            {isSignedOff && (
+              <span className="text-xs text-green-600 font-semibold">✓ Signed Off</span>
+            )}
           </div>
           <button
             type="button"
@@ -748,6 +772,7 @@ export default function ConsultationPage() {
                 consultationId={consultationId}
                 disabled={saving}
                 onLabRefer={() => setLabModalOpen(true)}
+                onRxRefer={() => setRxModalOpen(true)}
               />
             </>
           ) : (
@@ -777,6 +802,25 @@ export default function ConsultationPage() {
           consultationId={consultationId}
           onClose={() => setLabModalOpen(false)}
           onSuccess={() => setLabModalOpen(false)}
+        />
+      )}
+
+      {/* Prescription modal */}
+      {rxModalOpen && ctx && (
+        <PrescriptionFormModal
+          visitId={ctx.visit.id}
+          patientId={ctx.patient.id}
+          consultationId={consultationId}
+          onClose={() => setRxModalOpen(false)}
+          onSuccess={async () => {
+            setRxModalOpen(false);
+            // Also create PHARMACY referral to update visit status
+            if (consultationId) {
+              try {
+                await opdService.createReferral({ consultation: consultationId, referred_to: 'PHARMACY' });
+              } catch { /* referral already exists or non-fatal */ }
+            }
+          }}
         />
       )}
     </div>

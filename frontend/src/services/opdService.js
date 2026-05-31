@@ -22,6 +22,9 @@ export const opdService = {
   getConsultationReferrals: (consultationId) =>
     api.get(`/opd/consultations/${consultationId}/referrals/`),
 
+  // Visit timeline (Registration → Triage → Consultation → Lab → Pharmacy → Cashier)
+  getVisitTimeline: (visitId) => api.get(`/opd/visit-timeline/${visitId}/`),
+
   // ICD-10 typeahead
   searchIcd10: (q) => api.get('/opd/icd10/', { params: { q } }),
 };

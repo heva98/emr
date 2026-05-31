@@ -7,7 +7,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import CustomTokenObtainPairSerializer, UserProfileSerializer
+from .models import Notification
+from .serializers import CustomTokenObtainPairSerializer, NotificationSerializer, UserProfileSerializer
 
 COOKIE_NAME = "refresh_token"
 COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
@@ -100,3 +101,32 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserProfileSerializer(request.user).data)
+
+
+class NotificationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = Notification.objects.filter(user=request.user).order_by('-created_at')[:50]
+        return Response(NotificationSerializer(qs, many=True).data)
+
+
+class NotificationMarkReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            n = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        n.is_read = True
+        n.save()
+        return Response(NotificationSerializer(n).data)
+
+
+class NotificationMarkAllReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({'detail': 'All notifications marked as read.'})

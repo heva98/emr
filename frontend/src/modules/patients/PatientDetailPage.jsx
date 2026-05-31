@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { Pencil, PlusCircle, Phone, Calendar, Eye } from 'lucide-react';
+import { Pencil, PlusCircle, Phone, Calendar, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { patientService } from '../../services/patientService';
+import { labService } from '../../services/labService';
+import { pharmacyService } from '../../services/pharmacyService';
+import { cashierService } from '../../services/cashierService';
 import InitialsAvatar from './components/InitialsAvatar';
 import StatusBadge from './components/StatusBadge';
+import FlagBadge from '../laboratory/components/FlagBadge';
+import VisitTimeline from '../../components/VisitTimeline';
 
 const BLOOD_GROUP_LABELS = {
   A_POS: 'A+', A_NEG: 'A-', B_POS: 'B+', B_NEG: 'B-',
@@ -221,6 +226,46 @@ function NewVisitModal({ patientId, onClose, onCreated }) {
   );
 }
 
+function VisitRow({ v, navigate }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <>
+      <tr className="hover:bg-gray-50 transition-colors">
+        <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{v.visit_number}</td>
+        <td className="px-4 py-3 text-gray-700">{fmt(v.visit_date)}</td>
+        <td className="px-4 py-3 text-gray-600">{VISIT_TYPE_LABELS[v.visit_type] ?? v.visit_type}</td>
+        <td className="px-4 py-3"><StatusBadge status={v.status} /></td>
+        <td className="px-4 py-3 text-gray-500">{v.created_by_name}</td>
+        <td className="px-4 py-3 text-right">
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => setExpanded((o) => !o)}
+              title={expanded ? 'Hide timeline' : 'Show journey'}
+              className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+            >
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => navigate(`/opd?visit=${v.id}`)}
+              title="View visit"
+              className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={6} className="px-4 pb-4">
+            <VisitTimeline visitId={v.id} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
 function VisitsTab({ patientId }) {
   const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
@@ -277,22 +322,7 @@ function VisitsTab({ patientId }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {visits.map((v) => (
-                <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{v.visit_number}</td>
-                  <td className="px-4 py-3 text-gray-700">{fmt(v.visit_date)}</td>
-                  <td className="px-4 py-3 text-gray-600">{VISIT_TYPE_LABELS[v.visit_type] ?? v.visit_type}</td>
-                  <td className="px-4 py-3"><StatusBadge status={v.status} /></td>
-                  <td className="px-4 py-3 text-gray-500">{v.created_by_name}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => navigate(`/opd?visit=${v.id}`)}
-                      title="View visit"
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
+                <VisitRow key={v.id} v={v} navigate={navigate} />
               ))}
             </tbody>
           </table>
@@ -310,17 +340,193 @@ function VisitsTab({ patientId }) {
   );
 }
 
-// ─── Placeholder Tab ──────────────────────────────────────────────────────────
+// ─── Lab Results Tab ─────────────────────────────────────────────────────────
 
-function PlaceholderTab({ phase, module }) {
+function LabResultsTab({ patientId }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    labService
+      .getPatientLabHistory(patientId)
+      .then(({ data }) => setOrders(data))
+      .catch(() => toast.error('Failed to load lab history'))
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) return <TabSpinner />;
+  if (orders.length === 0) return <TabEmpty message="No verified lab results yet" />;
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-        <span className="text-lg">🔒</span>
-      </div>
-      <p className="text-sm font-medium text-gray-600">Coming in Phase {phase}</p>
-      <p className="text-xs text-gray-400 mt-1">{module} module is under development</p>
+    <div className="space-y-4">
+      {orders.map((order) => (
+        <div key={order.id} className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="font-mono text-xs font-semibold text-primary">{order.order_number}</span>
+            <span className="text-xs text-gray-500">{fmt(order.ordered_at)}</span>
+            <span className="text-xs text-gray-400">Ordered by {order.ordered_by_name}</span>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                {['Test', 'Result', 'Unit', 'Range', 'Flag', 'Date'].map((h) => (
+                  <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-gray-400 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {order.results.map((r) => (
+                <tr key={r.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 font-medium text-gray-800">{r.test_name}</td>
+                  <td className="px-4 py-2.5 text-gray-700 font-semibold">{r.result_value}</td>
+                  <td className="px-4 py-2.5 text-gray-500 text-xs">{r.test_unit || '—'}</td>
+                  <td className="px-4 py-2.5 text-gray-500 text-xs">
+                    {r.normal_low != null && r.normal_high != null
+                      ? `${r.normal_low} – ${r.normal_high}`
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-2.5"><FlagBadge flag={r.flag} /></td>
+                  <td className="px-4 py-2.5 text-gray-400 text-xs">{fmt(r.resulted_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
+  );
+}
+
+// ─── Prescriptions Tab ────────────────────────────────────────────────────────
+
+const RX_STATUS_COLORS = {
+  PENDING:              'bg-yellow-100 text-yellow-700',
+  PARTIALLY_DISPENSED:  'bg-blue-100 text-blue-700',
+  DISPENSED:            'bg-green-100 text-green-700',
+  CANCELLED:            'bg-gray-100 text-gray-500',
+};
+
+function PrescriptionsTab({ patientId }) {
+  const [rxList, setRxList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    pharmacyService
+      .getPrescriptions({ patient: patientId })
+      .then(({ data }) => setRxList(data.results ?? data))
+      .catch(() => toast.error('Failed to load prescriptions'))
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) return <TabSpinner />;
+  if (rxList.length === 0) return <TabEmpty message="No prescriptions recorded yet" />;
+
+  return (
+    <div className="space-y-3">
+      {rxList.map((rx) => (
+        <div key={rx.id} className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="font-mono text-xs font-semibold text-primary">{rx.prescription_number}</span>
+            <span className="text-xs text-gray-500">{fmt(rx.prescribed_at)}</span>
+            <span className="text-xs text-gray-400">By {rx.prescribed_by_name}</span>
+            <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${RX_STATUS_COLORS[rx.status] ?? 'bg-gray-100 text-gray-600'}`}>
+              {rx.status.replace('_', ' ')}
+            </span>
+          </div>
+          <ul className="divide-y divide-gray-50 px-4">
+            {rx.items.map((item) => (
+              <li key={item.id} className="py-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm">
+                <span className="font-medium text-gray-800">{item.drug_name}</span>
+                <span className="text-gray-400 text-xs">{item.drug_strength}</span>
+                <span className="text-gray-600 text-xs">{item.dose} · {item.frequency} · {item.duration}</span>
+                <span className="ml-auto text-xs text-gray-400">{item.quantity_dispensed}/{item.quantity_prescribed} dispensed</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Billing Tab ──────────────────────────────────────────────────────────────
+
+const INV_STATUS_COLORS = {
+  DRAFT:     'bg-gray-100 text-gray-600',
+  ISSUED:    'bg-blue-100 text-blue-700',
+  PAID:      'bg-green-100 text-green-700',
+  CANCELLED: 'bg-red-100 text-red-600',
+};
+
+function BillingTab({ patientId }) {
+  const navigate = useNavigate();
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    cashierService
+      .getInvoices({ patient: patientId })
+      .then(({ data }) => setInvoices(data.results ?? data))
+      .catch(() => toast.error('Failed to load invoices'))
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) return <TabSpinner />;
+  if (invoices.length === 0) return <TabEmpty message="No invoices yet" />;
+
+  return (
+    <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-200">
+            {['Invoice #', 'Date', 'Total', 'Paid', 'Balance', 'Status', ''].map((h) => (
+              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {invoices.map((inv) => (
+            <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{inv.invoice_number}</td>
+              <td className="px-4 py-3 text-gray-600 text-xs">{fmt(inv.created_at)}</td>
+              <td className="px-4 py-3 text-gray-800 font-medium">TZS {(inv.total_amount ?? 0).toLocaleString()}</td>
+              <td className="px-4 py-3 text-green-600 font-medium">TZS {(inv.amount_paid ?? 0).toLocaleString()}</td>
+              <td className="px-4 py-3 text-red-500 font-medium">TZS {(inv.balance_due ?? 0).toLocaleString()}</td>
+              <td className="px-4 py-3">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${INV_STATUS_COLORS[inv.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {inv.status}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button
+                  onClick={() => navigate(`/cashier/invoice/${inv.id}`)}
+                  className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                  title="Open invoice"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+function TabSpinner() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+function TabEmpty({ message }) {
+  return (
+    <div className="text-center py-12 text-gray-400 text-sm">{message}</div>
   );
 }
 
@@ -391,9 +597,9 @@ export default function PatientDetailPage() {
         <div className="p-6">
           {activeTab === 'overview'      && <OverviewTab patient={patient} />}
           {activeTab === 'visits'        && <VisitsTab patientId={id} />}
-          {activeTab === 'lab'           && <PlaceholderTab phase={3} module="Laboratory" />}
-          {activeTab === 'prescriptions' && <PlaceholderTab phase={4} module="Pharmacy" />}
-          {activeTab === 'billing'       && <PlaceholderTab phase={5} module="Cashier / Billing" />}
+          {activeTab === 'lab'           && <LabResultsTab patientId={id} />}
+          {activeTab === 'prescriptions' && <PrescriptionsTab patientId={id} />}
+          {activeTab === 'billing'       && <BillingTab patientId={id} />}
         </div>
       </div>
     </div>

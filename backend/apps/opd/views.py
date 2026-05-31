@@ -124,6 +124,92 @@ class VisitContextView(APIView):
         })
 
 
+class VisitTimelineView(APIView):
+    """
+    Returns structured timeline data for a single visit:
+    Registration → Triage → Consultation → Lab → Pharmacy → Cashier
+    """
+
+    def get(self, request, visit_id):
+        visit = get_object_or_404(
+            PatientVisit.objects.select_related('patient', 'created_by'),
+            pk=visit_id,
+        )
+
+        def _name(user):
+            if not user:
+                return None
+            return user.get_full_name() or user.username
+
+        timeline = {}
+
+        # Registration
+        timeline['registration'] = {
+            'timestamp': visit.created_at.isoformat() if visit.created_at else None,
+            'staff': _name(visit.created_by),
+        }
+
+        # Triage
+        try:
+            t = visit.triage
+            timeline['triage'] = {
+                'timestamp': t.recorded_at.isoformat() if t.recorded_at else None,
+                'staff': _name(t.recorded_by),
+            }
+        except Triage.DoesNotExist:
+            timeline['triage'] = None
+
+        # Consultation
+        try:
+            c = visit.consultation
+            timeline['consultation'] = {
+                'timestamp': c.started_at.isoformat() if c.started_at else None,
+                'staff': _name(c.doctor),
+                'status': c.status,
+            }
+        except Consultation.DoesNotExist:
+            timeline['consultation'] = None
+
+        # Lab orders
+        from apps.laboratory.models import LabOrder
+        lab_qs = LabOrder.objects.filter(visit=visit).select_related('ordered_by').order_by('ordered_at')
+        first_lab = lab_qs.first()
+        timeline['lab'] = {
+            'exists': first_lab is not None,
+            'timestamp': first_lab.ordered_at.isoformat() if first_lab and first_lab.ordered_at else None,
+            'staff': _name(first_lab.ordered_by) if first_lab else None,
+            'count': lab_qs.count(),
+        } if first_lab else None
+
+        # Prescriptions
+        from apps.pharmacy.models import Prescription
+        rx_qs = Prescription.objects.filter(visit=visit).select_related('prescribed_by').order_by('prescribed_at')
+        first_rx = rx_qs.first()
+        timeline['pharmacy'] = {
+            'exists': first_rx is not None,
+            'timestamp': first_rx.prescribed_at.isoformat() if first_rx and first_rx.prescribed_at else None,
+            'staff': _name(first_rx.prescribed_by) if first_rx else None,
+            'count': rx_qs.count(),
+        } if first_rx else None
+
+        # Invoice / Cashier
+        from apps.cashier.models import Invoice
+        invoice = Invoice.objects.filter(visit=visit).select_related('created_by').order_by('created_at').first()
+        timeline['cashier'] = {
+            'exists': invoice is not None,
+            'timestamp': invoice.created_at.isoformat() if invoice and invoice.created_at else None,
+            'staff': _name(invoice.created_by) if invoice else None,
+            'status': invoice.status if invoice else None,
+        } if invoice else None
+
+        return Response({
+            'visit_id': visit.id,
+            'visit_number': visit.visit_number,
+            'visit_status': visit.status,
+            'timeline': timeline,
+        })
+
+
 # ── ICD-10 static search ───────────────────────────────────────────────────────
 
 _ICD10_CODES = [

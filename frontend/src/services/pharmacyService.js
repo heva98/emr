@@ -19,6 +19,7 @@ export const pharmacyService = {
   // ── Prescriptions ──────────────────────────────────────────────────────────
   getPrescriptions: (params) => api.get('/pharmacy/prescriptions/', { params }),
   getPrescription: (id) => api.get(`/pharmacy/prescriptions/${id}/`),
+  createPrescription: (data) => api.post('/pharmacy/prescriptions/', data),
   updatePrescription: (id, data) => api.patch(`/pharmacy/prescriptions/${id}/`, data),
   dispense: (id, items) => api.post(`/pharmacy/prescriptions/${id}/dispense/`, items),
 

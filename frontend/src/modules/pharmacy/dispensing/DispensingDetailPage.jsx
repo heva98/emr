@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { pharmacyService } from '../../../services/pharmacyService';
-import InitialsAvatar from '../../patients/components/InitialsAvatar';
 import RxStatusBadge from './components/RxStatusBadge';
+import PatientVisitHeader from '../../../components/PatientVisitHeader';
 
 const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent';
 const sel = `${inp} bg-white`;
@@ -344,10 +344,6 @@ export default function DispensingDetailPage() {
   const allDispensed  = prescription.status === 'DISPENSED';
   const hasPending    = prescription.items.some((i) => i.status === 'PENDING' || i.status === 'PARTIALLY_DISPENSED');
 
-  const nameParts = patient?.name?.split(' ') ?? [];
-  const firstName = nameParts[0] ?? '';
-  const lastName  = nameParts[nameParts.length - 1] ?? '';
-
   const handlePrintLabel = (item) => {
     printLabel({
       patient: { name: patient?.name ?? '', patient_id: patient?.patient_id ?? '' },
@@ -384,25 +380,17 @@ export default function DispensingDetailPage() {
         </div>
       )}
 
-      {/* Patient header card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <InitialsAvatar firstName={firstName} lastName={lastName} size="lg" />
-          <div className="flex-1">
-            <p className="text-xl font-bold text-gray-800">{patient?.name}</p>
-            <p className="font-mono text-sm text-primary mt-0.5">{patient?.patient_id}</p>
-            {patient?.phone && (
-              <p className="text-sm text-gray-500 mt-1">{patient.phone}</p>
-            )}
-          </div>
-          <div className="text-right text-sm text-gray-500 space-y-1">
-            <div className="flex items-center gap-2 justify-end">
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Visit</span>
-              <span className="font-mono text-xs bg-gray-100 rounded px-2 py-0.5">{prescription.visit}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Patient + Visit header */}
+      <PatientVisitHeader
+        patient={{
+          patient_id: patient?.patient_id,
+          name: patient?.name,
+        }}
+        visit={{
+          visit_number: prescription.prescription_number,
+          status: prescription.status,
+        }}
+      />
 
       {/* Prescription info */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
