@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { opdService } from '../../services/opdService';
-import TriageLevelBadge from './components/TriageLevelBadge';
 import StatusBadge from '../patients/components/StatusBadge';
 import InitialsAvatar from '../patients/components/InitialsAvatar';
 
@@ -454,9 +453,8 @@ export default function ConsultationPage() {
             </div>
 
             {/* Visit info */}
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+            <div className="mb-4 pb-4 border-b border-gray-100">
               <StatusBadge status={visit?.status} />
-              <TriageLevelBadge level={visit?.triage_level} compact />
             </div>
 
             {/* Vitals */}

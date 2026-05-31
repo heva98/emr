@@ -4,38 +4,17 @@ import { X, Scale } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { opdService } from '../../../services/opdService';
 
-const TRIAGE_LEVELS = [
-  { value: 1, label: 'Resuscitation',  color: 'bg-red-600 hover:bg-red-700 border-red-700' },
-  { value: 2, label: 'Emergency',      color: 'bg-orange-500 hover:bg-orange-600 border-orange-600' },
-  { value: 3, label: 'Urgent',         color: 'bg-yellow-400 hover:bg-yellow-500 border-yellow-500 text-gray-900' },
-  { value: 4, label: 'Semi-urgent',    color: 'bg-blue-500 hover:bg-blue-600 border-blue-600' },
-  { value: 5, label: 'Non-urgent',     color: 'bg-green-500 hover:bg-green-600 border-green-600' },
-];
-
-const PAIN_EMOJIS = { 0: '😌', 2: '🙂', 4: '😐', 6: '😟', 8: '😣', 10: '😭' };
-function getPainEmoji(score) {
-  const key = Math.round(score / 2) * 2;
-  return PAIN_EMOJIS[key] ?? '😐';
-}
-
 const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent';
 const err = 'mt-1 text-xs text-red-500';
 
-function parseNum(v) {
-  const n = parseFloat(v);
-  return isNaN(n) ? null : n;
-}
-function parseInt2(v) {
-  const n = parseInt(v);
-  return isNaN(n) ? null : n;
-}
+function toNum(v) { const n = parseFloat(v); return isNaN(n) ? null : n; }
+function toInt(v) { const n = parseInt(v, 10); return isNaN(n) ? null : n; }
 
 export default function TriageModal({ visit, onClose, onSuccess }) {
   const {
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
@@ -47,16 +26,11 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
       pulse_rate: '',
       respiratory_rate: '',
       oxygen_saturation: '',
-      triage_level: null,
-      pain_score: 0,
     },
   });
 
   const weight = parseFloat(watch('weight_kg'));
   const height = parseFloat(watch('height_cm'));
-  const triageLevel = watch('triage_level');
-  const painScore = watch('pain_score');
-
   const bmi =
     weight > 0 && height > 0
       ? (weight / Math.pow(height / 100, 2)).toFixed(1)
@@ -70,23 +44,17 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
 
   const onSubmit = useCallback(
     async (data) => {
-      if (!data.triage_level) {
-        toast.error('Please select a triage level.');
-        return;
-      }
       try {
         await opdService.createTriage({
           visit: visit.id,
           weight_kg: data.weight_kg,
-          height_cm: parseNum(data.height_cm),
+          height_cm: toNum(data.height_cm),
           temperature_celsius: data.temperature_celsius,
-          blood_pressure_systolic: parseInt2(data.blood_pressure_systolic),
-          blood_pressure_diastolic: parseInt2(data.blood_pressure_diastolic),
-          pulse_rate: parseInt2(data.pulse_rate),
-          respiratory_rate: parseInt2(data.respiratory_rate),
-          oxygen_saturation: parseInt2(data.oxygen_saturation),
-          triage_level: parseInt(data.triage_level),
-          pain_score: parseInt2(data.pain_score),
+          blood_pressure_systolic: toInt(data.blood_pressure_systolic),
+          blood_pressure_diastolic: toInt(data.blood_pressure_diastolic),
+          pulse_rate: toInt(data.pulse_rate),
+          respiratory_rate: toInt(data.respiratory_rate),
+          oxygen_saturation: toInt(data.oxygen_saturation),
         });
         toast.success('Triage recorded successfully.');
         onSuccess();
@@ -123,8 +91,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Vitals grid */}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {/* Weight — required */}
             <div>
@@ -142,9 +109,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
 
             {/* Height — optional */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Height (cm)
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Height (cm)</label>
               <input
                 type="number" step="0.1" min="0" max="250"
                 className={inp}
@@ -202,9 +167,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
 
             {/* Pulse — optional */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Pulse (bpm)
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pulse (bpm)</label>
               <input
                 type="number" min="20" max="300"
                 className={inp}
@@ -215,9 +178,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
 
             {/* Respiratory rate — optional */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Resp. Rate (br/min)
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Resp. Rate (br/min)</label>
               <input
                 type="number" min="5" max="60"
                 className={inp}
@@ -228,9 +189,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
 
             {/* SpO2 — optional */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                SpO₂ (%)
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">SpO₂ (%)</label>
               <input
                 type="number" min="0" max="100"
                 className={inp}
@@ -241,59 +200,6 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
                 })}
               />
               {errors.oxygen_saturation && <p className={err}>{errors.oxygen_saturation.message}</p>}
-            </div>
-          </div>
-
-          {/* Triage Level */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              Triage Level <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {TRIAGE_LEVELS.map((lv) => (
-                <button
-                  key={lv.value}
-                  type="button"
-                  onClick={() => setValue('triage_level', lv.value)}
-                  className={`flex flex-col items-center justify-center rounded-xl p-3 text-white text-xs font-bold border-2 transition-all
-                    ${lv.color}
-                    ${triageLevel === lv.value
-                      ? 'ring-2 ring-offset-2 ring-gray-800 scale-105'
-                      : 'opacity-70 hover:opacity-100'}
-                    ${lv.value === 3 ? 'text-gray-900' : ''}
-                  `}
-                >
-                  <span className="text-lg font-extrabold">{lv.value}</span>
-                  <span className="text-center leading-tight mt-0.5" style={{ fontSize: '10px' }}>
-                    {lv.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Pain Score */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              Pain Score:{' '}
-              <span className="font-bold text-gray-800">{painScore}</span>
-              {' '}{getPainEmoji(Number(painScore))}
-            </label>
-            <div className="flex items-center gap-3">
-              <span className="text-lg">{getPainEmoji(0)}</span>
-              <div className="flex-1">
-                <input
-                  type="range" min="0" max="10" step="1"
-                  className="w-full h-2 appearance-none rounded-full cursor-pointer accent-primary"
-                  {...register('pain_score')}
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1 px-0.5">
-                  {[0, 2, 4, 6, 8, 10].map((n) => (
-                    <span key={n}>{n}</span>
-                  ))}
-                </div>
-              </div>
-              <span className="text-lg">{getPainEmoji(10)}</span>
             </div>
           </div>
         </form>

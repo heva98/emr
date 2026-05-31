@@ -65,16 +65,9 @@ class QueuePatientSerializer(serializers.ModelSerializer):
 
 
 class QueueTriageSerializer(serializers.ModelSerializer):
-    triage_level_display = serializers.CharField(
-        source='get_triage_level_display', read_only=True
-    )
-
     class Meta:
         model = Triage
-        fields = [
-            'id', 'triage_level', 'triage_level_display',
-            'pain_score', 'recorded_at',
-        ]
+        fields = ['id', 'recorded_at', 'weight_kg', 'temperature_celsius']
 
 
 class QueueVisitSerializer(serializers.ModelSerializer):

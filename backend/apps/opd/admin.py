@@ -5,8 +5,7 @@ from .models import Consultation, Referral, Triage
 
 @admin.register(Triage)
 class TriageAdmin(admin.ModelAdmin):
-    list_display = ['visit', 'triage_level', 'recorded_by', 'recorded_at']
-    list_filter = ['triage_level']
+    list_display = ['visit', 'weight_kg', 'temperature_celsius', 'recorded_by', 'recorded_at']
     readonly_fields = ['bmi', 'recorded_at', 'recorded_by']
 
 

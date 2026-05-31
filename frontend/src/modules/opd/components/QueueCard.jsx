@@ -1,6 +1,5 @@
 import { Clock, UserRound, DoorOpen, Stethoscope, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import TriageLevelBadge from './TriageLevelBadge';
 import StatusBadge from '../../patients/components/StatusBadge';
 
 function useWaitTime(createdAt) {
@@ -26,10 +25,7 @@ export default function QueueCard({ visit, onTriage }) {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <TriageLevelBadge level={visit.triage_level} compact />
-          <StatusBadge status={visit.status} />
-        </div>
+        <StatusBadge status={visit.status} />
         <span className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
           <Clock className="w-3 h-3" />
           {waitTime}
