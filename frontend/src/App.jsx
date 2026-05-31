@@ -10,6 +10,9 @@ import PatientRegistrationForm from "./modules/patients/PatientRegistrationForm"
 import PatientDetailPage from "./modules/patients/PatientDetailPage";
 import OPDQueuePage from "./modules/opd/OPDQueuePage";
 import ConsultationPage from "./modules/opd/ConsultationPage";
+import LabQueuePage from "./modules/laboratory/LabQueuePage";
+import LabOrderDetailPage from "./modules/laboratory/LabOrderDetailPage";
+import LabResultReport from "./modules/laboratory/LabResultReport";
 
 function PlaceholderPage({ title }) {
   return (
@@ -32,6 +35,9 @@ export default function App() {
 
           {/* Protected — require authentication */}
           <Route element={<ProtectedRoute />}>
+            {/* Print pages — protected but no sidebar */}
+            <Route path="/laboratory/order/:id/report" element={<LabResultReport />} />
+
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/registration" replace />} />
 
@@ -43,7 +49,8 @@ export default function App() {
 
               <Route path="/opd" element={<OPDQueuePage />} />
               <Route path="/opd/consultation/:visitId" element={<ConsultationPage />} />
-              <Route path="/laboratory" element={<PlaceholderPage title="Laboratory" />} />
+              <Route path="/laboratory" element={<LabQueuePage />} />
+              <Route path="/laboratory/order/:id" element={<LabOrderDetailPage />} />
               <Route path="/pharmacy/dispensing" element={<PlaceholderPage title="Dispensing Pharmacy" />} />
               <Route path="/pharmacy/store" element={<PlaceholderPage title="Main Store" />} />
               <Route path="/cashier" element={<PlaceholderPage title="Cashier / Billing" />} />

@@ -379,14 +379,10 @@ export default function ConsultationPage() {
           const diffLines = (c.diagnosis_secondary || '').split(  '\n').filter(Boolean);
           const codes = c.icd10_codes ?? [];
           setProvisionalDx(
-            provLines.length > 0
-              ? provLines.map((text, i) => ({ text, code: codes[i] ?? null }))
-              : [{ text: '', code: null }]
+            provLines.map((text, i) => ({ text, code: codes[i] ?? null }))
           );
           setDifferentialDx(
-            diffLines.length > 0
-              ? diffLines.map((text, i) => ({ text, code: codes[provLines.length + i] ?? null }))
-              : [{ text: '', code: null }]
+            diffLines.map((text, i) => ({ text, code: codes[provLines.length + i] ?? null }))
           );
 
           reset({
