@@ -83,6 +83,17 @@ class LabOrderViewSet(
             return LabOrderWriteSerializer
         return LabOrderSerializer
 
+    def create(self, request, *args, **kwargs):
+        write_ser = LabOrderWriteSerializer(data=request.data, context={'request': request})
+        write_ser.is_valid(raise_exception=True)
+        order = write_ser.save()
+        order = (
+            LabOrder.objects.select_related('patient', 'visit', 'ordered_by')
+            .prefetch_related('items__test', 'items__result')
+            .get(pk=order.pk)
+        )
+        return Response(LabOrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['patch'], url_path='collect-specimen')
     def collect_specimen(self, request, pk=None):
         order = get_object_or_404(LabOrder, pk=pk)
@@ -197,8 +208,8 @@ class LabQueueView(generics.ListAPIView):
             LabOrder.objects.filter(
                 status__in=[LabOrder.Status.ORDERED, LabOrder.Status.SPECIMEN_COLLECTED]
             )
-            .select_related('patient', 'visit')
-            .prefetch_related('items')
+            .select_related('patient', 'visit', 'ordered_by')
+            .prefetch_related('items__test')
             .annotate(priority_rank=_PRIORITY_RANK)
             .order_by('priority_rank', 'ordered_at')
         )

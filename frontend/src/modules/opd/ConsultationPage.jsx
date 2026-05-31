@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { opdService } from '../../services/opdService';
 import StatusBadge from '../patients/components/StatusBadge';
 import InitialsAvatar from '../patients/components/InitialsAvatar';
+import LabOrderFormModal from '../laboratory/components/LabOrderFormModal';
 
 // ── Review of Systems data ────────────────────────────────────────────────────
 const ROS_SYSTEMS = [
@@ -38,11 +39,11 @@ const ta  = `${inp} resize-none`;
 function CollapsibleSection({ title, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-gray-200 rounded-xl">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+        className={`w-full flex items-center justify-between px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors ${open ? 'rounded-t-xl' : 'rounded-xl'}`}
       >
         <span className="text-sm font-semibold text-gray-700">{title}</span>
         {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
@@ -52,13 +53,43 @@ function CollapsibleSection({ title, children, defaultOpen = true }) {
   );
 }
 
-// ── ICD-10 Typeahead ──────────────────────────────────────────────────────────
-function Icd10Typeahead({ selectedCodes, onChange, readOnly }) {
-  const [q, setQ] = useState('');
+// ── DiagnosisChip — a confirmed diagnosis displayed as a removable card ───────
+function DiagnosisChip({ entry, onRemove, disabled, accent }) {
+  return (
+    <div className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 bg-white shadow-sm transition-shadow hover:shadow ${
+      accent ? 'border-primary/25 bg-primary/[0.02]' : 'border-gray-200'
+    }`}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 leading-snug">{entry.text}</p>
+        {entry.code && (
+          <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-mono">
+            <span className={`font-bold ${accent ? 'text-primary' : 'text-gray-500'}`}>{entry.code.code}</span>
+            <span className="text-gray-400">· {entry.code.description}</span>
+          </span>
+        )}
+      </div>
+      {!disabled && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="shrink-0 mt-0.5 text-gray-300 hover:text-red-500 transition-colors"
+          title="Remove"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── DiagnosisMultiInput — chip list + single persistent input ─────────────────
+function DiagnosisMultiInput({ label, required, placeholder, entries, onChange, disabled, accent }) {
+  const [draft, setDraft] = useState('');
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef(null);
   const wrapRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const handler = (e) => {
@@ -68,81 +99,94 @@ function Icd10Typeahead({ selectedCodes, onChange, readOnly }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const search = useCallback((value) => {
+  const commit = (text, code = null) => {
+    if (!text.trim()) return;
+    onChange([...entries, { text: text.trim(), code }]);
+    setDraft('');
+    setResults([]);
+    setOpen(false);
+    inputRef.current?.focus();
+  };
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setDraft(val);
     clearTimeout(debounceRef.current);
-    if (!value.trim()) { setResults([]); setOpen(false); return; }
+    if (val.trim().length < 2) { setResults([]); setOpen(false); return; }
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await opdService.searchIcd10(value);
+        const res = await opdService.searchIcd10(val);
         setResults(res.data);
         setOpen(res.data.length > 0);
       } catch { /* silent */ }
-    }, 350);
-  }, []);
-
-  const handleInput = (e) => {
-    setQ(e.target.value);
-    search(e.target.value);
+    }, 300);
   };
 
-  const addCode = (code) => {
-    if (!selectedCodes.find((c) => c.code === code.code)) {
-      onChange([...selectedCodes, code]);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Prefer first ICD-10 result if dropdown is open, else free-text
+      open && results.length > 0
+        ? commit(results[0].description, results[0])
+        : commit(draft);
     }
-    setQ('');
-    setResults([]);
-    setOpen(false);
+    if (e.key === 'Escape') { setOpen(false); }
+    // Backspace on empty input removes last chip
+    if (e.key === 'Backspace' && draft === '' && entries.length > 0) {
+      onChange(entries.slice(0, -1));
+    }
   };
 
-  const removeCode = (code) => {
-    onChange(selectedCodes.filter((c) => c.code !== code));
-  };
+  const remove = (i) => onChange(entries.filter((_, idx) => idx !== i));
+
+  const accentCls = accent
+    ? 'border-primary/30 focus:ring-primary'
+    : 'border-gray-300 focus:ring-primary';
 
   return (
-    <div className="space-y-2" ref={wrapRef}>
-      {/* Selected tags */}
-      {selectedCodes.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selectedCodes.map((c) => (
-            <span
-              key={c.code}
-              className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium rounded-full px-3 py-1"
-            >
-              <span className="font-bold">{c.code}</span>
-              <span className="text-primary/70">· {c.description}</span>
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={() => removeCode(c.code)}
-                  className="ml-1 hover:text-red-500 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </span>
+    <div>
+      {/* Section header */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className={`text-xs font-semibold uppercase tracking-wide ${accent ? 'text-primary' : 'text-gray-500'}`}>
+          {label}
+        </span>
+        {required && <span className="text-red-500 text-xs leading-none">*</span>}
+      </div>
+
+      {/* Chips — only render entries that have text */}
+      {entries.some((e) => e.text.trim()) && (
+        <div className="flex flex-col gap-2 mb-3">
+          {entries.filter((e) => e.text.trim()).map((entry, i) => (
+            <DiagnosisChip
+              key={i}
+              entry={entry}
+              onRemove={() => remove(entries.indexOf(entry))}
+              disabled={disabled}
+              accent={accent}
+            />
           ))}
         </div>
       )}
 
-      {/* Search input */}
-      {!readOnly && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Input */}
+      {!disabled ? (
+        <div className="relative" ref={wrapRef}>
           <input
+            ref={inputRef}
             type="text"
-            value={q}
-            onChange={handleInput}
-            onFocus={() => q && setOpen(results.length > 0)}
-            placeholder="Search ICD-10 codes or descriptions…"
-            className={`${inp} pl-9`}
+            value={draft}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${accentCls}`}
+            placeholder={placeholder ?? 'Search ICD-10 or type, press Enter to add…'}
           />
           {open && results.length > 0 && (
-            <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+            <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
               {results.map((c) => (
                 <button
                   key={c.code}
                   type="button"
-                  onClick={() => addCode(c)}
+                  onClick={() => commit(c.description, c)}
                   className="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-baseline gap-3 border-b border-gray-50 last:border-0"
                 >
                   <span className="font-mono font-bold text-xs text-primary shrink-0">{c.code}</span>
@@ -151,7 +195,12 @@ function Icd10Typeahead({ selectedCodes, onChange, readOnly }) {
               ))}
             </div>
           )}
+          <p className="mt-1.5 text-xs text-gray-400">
+            Select from the list or press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Enter</kbd> to add free text
+          </p>
         </div>
+      ) : (
+        entries.length === 0 && <p className="text-sm text-gray-400 italic">None recorded.</p>
       )}
     </div>
   );
@@ -216,7 +265,7 @@ const REFERRAL_OPTIONS = [
   { value: 'RADIOLOGY', label: 'Radiology' },
 ];
 
-function ReferralDropdown({ consultationId, disabled }) {
+function ReferralDropdown({ consultationId, disabled, onLabRefer }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(null);
   const ref = useRef(null);
@@ -231,6 +280,10 @@ function ReferralDropdown({ consultationId, disabled }) {
 
   const refer = async (type, label) => {
     setOpen(false);
+    if (type === 'LAB') {
+      onLabRefer?.();
+      return;
+    }
     setSending(type);
     try {
       await opdService.createReferral({ consultation: consultationId, referred_to: type });
@@ -284,10 +337,12 @@ export default function ConsultationPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previousVisitsOpen, setPreviousVisitsOpen] = useState(false);
+  const [labModalOpen, setLabModalOpen] = useState(false);
 
-  // ROS and ICD-10 managed outside react-hook-form
+  // ROS and diagnosis lists managed outside react-hook-form
   const [rosSelected, setRosSelected] = useState(new Set());
-  const [icd10Codes, setIcd10Codes] = useState([]);
+  const [provisionalDx, setProvisionalDx] = useState([]);
+  const [differentialDx, setDifferentialDx] = useState([]);
 
   const {
     register,
@@ -297,10 +352,7 @@ export default function ConsultationPage() {
   } = useForm({
     defaultValues: {
       history_of_presenting_illness: '',
-      review_of_systems: '',
       examination_findings: '',
-      diagnosis_primary: '',
-      diagnosis_secondary: '',
       clinical_notes: '',
       plan: '',
       follow_up_date: '',
@@ -320,13 +372,26 @@ export default function ConsultationPage() {
           const c = data.consultation;
           setConsultationId(c.id);
           setIsSignedOff(c.status === 'SIGNED_OFF');
-          setIcd10Codes(c.icd10_codes ?? []);
           setRosSelected(parseRosText(c.review_of_systems));
+
+          // Restore provisional diagnoses
+          const provLines = (c.diagnosis_primary || '').split('\n').filter(Boolean);
+          const diffLines = (c.diagnosis_secondary || '').split(  '\n').filter(Boolean);
+          const codes = c.icd10_codes ?? [];
+          setProvisionalDx(
+            provLines.length > 0
+              ? provLines.map((text, i) => ({ text, code: codes[i] ?? null }))
+              : [{ text: '', code: null }]
+          );
+          setDifferentialDx(
+            diffLines.length > 0
+              ? diffLines.map((text, i) => ({ text, code: codes[provLines.length + i] ?? null }))
+              : [{ text: '', code: null }]
+          );
+
           reset({
             history_of_presenting_illness: c.history_of_presenting_illness ?? '',
             examination_findings: c.examination_findings ?? '',
-            diagnosis_primary: c.diagnosis_primary ?? '',
-            diagnosis_secondary: c.diagnosis_secondary ?? '',
             clinical_notes: c.clinical_notes ?? '',
             plan: c.plan ?? '',
             follow_up_date: c.follow_up_date ?? '',
@@ -347,9 +412,9 @@ export default function ConsultationPage() {
     history_of_presenting_illness: formData.history_of_presenting_illness,
     review_of_systems: [...rosSelected].join('; '),
     examination_findings: formData.examination_findings,
-    diagnosis_primary: formData.diagnosis_primary,
-    diagnosis_secondary: formData.diagnosis_secondary,
-    icd10_codes: icd10Codes,
+    diagnosis_primary: provisionalDx.map((d) => d.text).filter(Boolean).join('\n'),
+    diagnosis_secondary: differentialDx.map((d) => d.text).filter(Boolean).join('\n'),
+    icd10_codes: [...provisionalDx, ...differentialDx].map((d) => d.code).filter(Boolean),
     clinical_notes: formData.clinical_notes,
     plan: formData.plan,
     follow_up_date: formData.follow_up_date || null,
@@ -432,7 +497,7 @@ export default function ConsultationPage() {
     <div className="flex gap-0 lg:gap-6 min-h-screen -mx-4 lg:mx-0">
       {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-72 xl:w-80 shrink-0">
-        <div className="sticky top-20 space-y-4">
+        <div className={`sticky top-20 space-y-4 overflow-y-auto pr-1 ${import.meta.env.DEV ? 'max-h-[calc(100vh-11.5rem)]' : 'max-h-[calc(100vh-9rem)]'}`}>
           {/* Patient card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex flex-col items-center text-center mb-4">
@@ -546,7 +611,7 @@ export default function ConsultationPage() {
           </button>
         </div>
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4 pb-32">
+        <form onSubmit={(e) => e.preventDefault()} className={`space-y-4 ${import.meta.env.DEV ? 'pb-40' : 'pb-32'}`}>
           {/* 1. History of Presenting Illness */}
           <CollapsibleSection title="1. History of Presenting Illness">
             <textarea
@@ -590,44 +655,23 @@ export default function ConsultationPage() {
 
           {/* 4. Diagnosis */}
           <CollapsibleSection title="4. Diagnosis">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Primary Diagnosis <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
+            <div className="space-y-5">
+              <DiagnosisMultiInput
+                label="Provisional Diagnosis"
+                required
+                accent
+                placeholder="Search ICD-10 or type diagnosis, press Enter to add…"
+                entries={provisionalDx}
+                onChange={setProvisionalDx}
+                disabled={isSignedOff}
+              />
+              <div className="border-t border-gray-100 pt-5">
+                <DiagnosisMultiInput
+                  label="Differential Diagnosis"
+                  placeholder="Search ICD-10 or type differential, press Enter to add…"
+                  entries={differentialDx}
+                  onChange={setDifferentialDx}
                   disabled={isSignedOff}
-                  className={inp}
-                  placeholder="e.g. Community-acquired pneumonia"
-                  {...register('diagnosis_primary', {
-                    required: !isSignedOff ? 'Primary diagnosis is required.' : false,
-                  })}
-                />
-                {errors.diagnosis_primary && (
-                  <p className="mt-1 text-xs text-red-500">{errors.diagnosis_primary.message}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Secondary Diagnosis <span className="text-gray-400">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  disabled={isSignedOff}
-                  className={inp}
-                  placeholder="e.g. Anaemia"
-                  {...register('diagnosis_secondary')}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">
-                  ICD-10 Codes <span className="text-gray-400">(optional)</span>
-                </label>
-                <Icd10Typeahead
-                  selectedCodes={icd10Codes}
-                  onChange={setIcd10Codes}
-                  readOnly={isSignedOff}
                 />
               </div>
             </div>
@@ -685,7 +729,7 @@ export default function ConsultationPage() {
         </form>
 
         {/* ── Bottom action bar (fixed) ───────────────────────────────────── */}
-        <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 shadow-lg px-6 py-3 flex items-center justify-end gap-3">
+        <div className={`fixed left-0 right-0 z-20 bg-white border-t border-gray-200 shadow-lg px-6 py-3 flex items-center justify-end gap-3 ${import.meta.env.DEV ? 'bottom-9' : 'bottom-0'}`}>
           {!isSignedOff ? (
             <>
               <button
@@ -704,11 +748,18 @@ export default function ConsultationPage() {
               >
                 {saving ? 'Saving…' : 'Sign Off Consultation'}
               </button>
-              <ReferralDropdown consultationId={consultationId} disabled={saving} />
+              <ReferralDropdown
+                consultationId={consultationId}
+                disabled={saving}
+                onLabRefer={() => setLabModalOpen(true)}
+              />
             </>
           ) : (
             <>
-              <ReferralDropdown consultationId={consultationId} />
+              <ReferralDropdown
+                consultationId={consultationId}
+                onLabRefer={() => setLabModalOpen(true)}
+              />
               <button
                 type="button"
                 onClick={handlePrint}
@@ -721,6 +772,17 @@ export default function ConsultationPage() {
           )}
         </div>
       </div>
+
+      {/* Lab order modal */}
+      {labModalOpen && ctx && (
+        <LabOrderFormModal
+          visitId={ctx.visit.id}
+          patientId={ctx.patient.id}
+          consultationId={consultationId}
+          onClose={() => setLabModalOpen(false)}
+          onSuccess={() => setLabModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

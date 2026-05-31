@@ -59,16 +59,17 @@ class LabOrderSerializer(serializers.ModelSerializer):
     items = LabOrderItemSerializer(many=True, read_only=True)
     ordered_by_name = serializers.SerializerMethodField()
     patient_display = serializers.SerializerMethodField()
+    visit_number = serializers.CharField(source='visit.visit_number', read_only=True)
 
     class Meta:
         model = LabOrder
         fields = [
-            'id', 'order_number', 'patient', 'patient_display', 'visit',
+            'id', 'order_number', 'patient', 'patient_display', 'visit', 'visit_number',
             'ordered_by', 'ordered_by_name', 'ordered_at',
             'priority', 'status', 'clinical_notes', 'items',
         ]
         read_only_fields = [
-            'id', 'order_number', 'patient', 'visit',
+            'id', 'order_number', 'patient', 'visit', 'visit_number',
             'ordered_by', 'ordered_at', 'status',
         ]
 
@@ -76,10 +77,20 @@ class LabOrderSerializer(serializers.ModelSerializer):
         return obj.ordered_by.get_full_name() or obj.ordered_by.username
 
     def get_patient_display(self, obj):
+        from datetime import date
         p = obj.patient
+        age = None
+        if p.date_of_birth:
+            today = date.today()
+            age = today.year - p.date_of_birth.year - (
+                (today.month, today.day) < (p.date_of_birth.month, p.date_of_birth.day)
+            )
         return {
             'patient_id': p.patient_id,
             'name': ' '.join(filter(None, [p.first_name, p.middle_name, p.last_name])),
+            'age': age,
+            'gender': p.gender,
+            'gender_display': 'Male' if p.gender == 'M' else 'Female' if p.gender == 'F' else p.gender,
         }
 
 
@@ -129,12 +140,16 @@ class LabResultInputSerializer(serializers.Serializer):
 class LabQueueOrderSerializer(serializers.ModelSerializer):
     patient_display = serializers.SerializerMethodField()
     items_count = serializers.SerializerMethodField()
+    ordered_by_name = serializers.SerializerMethodField()
+    test_codes = serializers.SerializerMethodField()
+    test_categories = serializers.SerializerMethodField()
 
     class Meta:
         model = LabOrder
         fields = [
             'id', 'order_number', 'patient_display', 'visit',
-            'priority', 'status', 'ordered_at', 'items_count',
+            'ordered_by_name', 'priority', 'status', 'ordered_at',
+            'items_count', 'test_codes', 'test_categories',
         ]
 
     def get_patient_display(self, obj):
@@ -146,6 +161,15 @@ class LabQueueOrderSerializer(serializers.ModelSerializer):
 
     def get_items_count(self, obj):
         return obj.items.count()
+
+    def get_ordered_by_name(self, obj):
+        return obj.ordered_by.get_full_name() or obj.ordered_by.username
+
+    def get_test_codes(self, obj):
+        return [item.test.code for item in obj.items.all()]
+
+    def get_test_categories(self, obj):
+        return list({item.test.category for item in obj.items.all()})
 
 
 class LabHistoryResultSerializer(serializers.ModelSerializer):
