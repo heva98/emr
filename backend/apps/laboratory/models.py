@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 
@@ -172,3 +174,34 @@ class LabResult(models.Model):
         except (ValueError, TypeError):
             self.result_numeric = None
         super().save(*args, **kwargs)
+
+
+@receiver(post_save, sender=LabResult)
+def _lab_result_critical_notify(sender, instance, created, **kwargs):
+    if not created:
+        return
+    if instance.flag not in (LabResult.Flag.CRITICAL_LOW, LabResult.Flag.CRITICAL_HIGH):
+        return
+
+    from django.contrib.auth import get_user_model
+    from apps.users.models import Notification
+
+    User = get_user_model()
+    patient = instance.order_item.order.patient
+    test_name = instance.order_item.test.name
+    msg = (
+        f"CRITICAL {instance.flag.replace('_', ' ')} for {test_name} — "
+        f"Patient {patient.patient_id} ({patient.first_name} {patient.last_name}). "
+        f"Value: {instance.result_value}. Notify clinician immediately."
+    )
+    recipients = User.objects.filter(
+        role__in=[User.Role.DOCTOR, User.Role.ADMIN], is_active=True
+    )
+    Notification.objects.bulk_create([
+        Notification(
+            user=u,
+            message=msg,
+            notification_type=Notification.NotificationType.CRITICAL_LAB,
+        )
+        for u in recipients
+    ])
