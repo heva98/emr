@@ -18,7 +18,6 @@ class TriageSerializer(serializers.ModelSerializer):
             'temperature_celsius',
             'blood_pressure_systolic', 'blood_pressure_diastolic',
             'pulse_rate', 'respiratory_rate', 'oxygen_saturation',
-            'chief_complaint', 'triage_level', 'pain_score',
         ]
         read_only_fields = ['bmi', 'recorded_at', 'recorded_by']
 
@@ -74,7 +73,7 @@ class QueueTriageSerializer(serializers.ModelSerializer):
         model = Triage
         fields = [
             'id', 'triage_level', 'triage_level_display',
-            'chief_complaint', 'pain_score', 'recorded_at',
+            'pain_score', 'recorded_at',
         ]
 
 

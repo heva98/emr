@@ -12,10 +12,7 @@ const TRIAGE_LEVELS = [
   { value: 5, label: 'Non-urgent',     color: 'bg-green-500 hover:bg-green-600 border-green-600' },
 ];
 
-const PAIN_EMOJIS = {
-  0: '😌', 2: '🙂', 4: '😐', 6: '😟', 8: '😣', 10: '😭',
-};
-
+const PAIN_EMOJIS = { 0: '😌', 2: '🙂', 4: '😐', 6: '😟', 8: '😣', 10: '😭' };
 function getPainEmoji(score) {
   const key = Math.round(score / 2) * 2;
   return PAIN_EMOJIS[key] ?? '😐';
@@ -23,6 +20,15 @@ function getPainEmoji(score) {
 
 const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent';
 const err = 'mt-1 text-xs text-red-500';
+
+function parseNum(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+function parseInt2(v) {
+  const n = parseInt(v);
+  return isNaN(n) ? null : n;
+}
 
 export default function TriageModal({ visit, onClose, onSuccess }) {
   const {
@@ -41,7 +47,6 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
       pulse_rate: '',
       respiratory_rate: '',
       oxygen_saturation: '',
-      chief_complaint: '',
       triage_level: null,
       pain_score: 0,
     },
@@ -57,7 +62,6 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
       ? (weight / Math.pow(height / 100, 2)).toFixed(1)
       : null;
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
@@ -74,16 +78,15 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
         await opdService.createTriage({
           visit: visit.id,
           weight_kg: data.weight_kg,
-          height_cm: data.height_cm,
+          height_cm: parseNum(data.height_cm),
           temperature_celsius: data.temperature_celsius,
-          blood_pressure_systolic: parseInt(data.blood_pressure_systolic),
-          blood_pressure_diastolic: parseInt(data.blood_pressure_diastolic),
-          pulse_rate: parseInt(data.pulse_rate),
-          respiratory_rate: parseInt(data.respiratory_rate),
-          oxygen_saturation: parseInt(data.oxygen_saturation),
-          chief_complaint: data.chief_complaint,
+          blood_pressure_systolic: parseInt2(data.blood_pressure_systolic),
+          blood_pressure_diastolic: parseInt2(data.blood_pressure_diastolic),
+          pulse_rate: parseInt2(data.pulse_rate),
+          respiratory_rate: parseInt2(data.respiratory_rate),
+          oxygen_saturation: parseInt2(data.oxygen_saturation),
           triage_level: parseInt(data.triage_level),
-          pain_score: parseInt(data.pain_score),
+          pain_score: parseInt2(data.pain_score),
         });
         toast.success('Triage recorded successfully.');
         onSuccess();
@@ -120,10 +123,10 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Vitals grid */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {/* Weight */}
+            {/* Weight — required */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Weight (kg) <span className="text-red-500">*</span>
@@ -137,18 +140,17 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
               {errors.weight_kg && <p className={err}>{errors.weight_kg.message}</p>}
             </div>
 
-            {/* Height */}
+            {/* Height — optional */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Height (cm) <span className="text-red-500">*</span>
+                Height (cm)
               </label>
               <input
                 type="number" step="0.1" min="0" max="250"
                 className={inp}
                 placeholder="e.g. 165.0"
-                {...register('height_cm', { required: 'Required' })}
+                {...register('height_cm')}
               />
-              {errors.height_cm && <p className={err}>{errors.height_cm.message}</p>}
             </div>
 
             {/* BMI display */}
@@ -162,7 +164,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* Temperature */}
+            {/* Temperature — required */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Temperature (°C) <span className="text-red-500">*</span>
@@ -176,70 +178,64 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
               {errors.temperature_celsius && <p className={err}>{errors.temperature_celsius.message}</p>}
             </div>
 
-            {/* Blood Pressure */}
+            {/* Blood Pressure — optional */}
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Blood Pressure (mmHg) <span className="text-red-500">*</span>
+                Blood Pressure (mmHg)
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="number" min="50" max="300"
                   className={inp}
                   placeholder="Sys"
-                  {...register('blood_pressure_systolic', { required: 'Required' })}
+                  {...register('blood_pressure_systolic')}
                 />
                 <span className="text-gray-400 text-sm shrink-0">/</span>
                 <input
                   type="number" min="30" max="200"
                   className={inp}
                   placeholder="Dia"
-                  {...register('blood_pressure_diastolic', { required: 'Required' })}
+                  {...register('blood_pressure_diastolic')}
                 />
               </div>
-              {(errors.blood_pressure_systolic || errors.blood_pressure_diastolic) && (
-                <p className={err}>Systolic and diastolic required.</p>
-              )}
             </div>
 
-            {/* Pulse */}
+            {/* Pulse — optional */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Pulse (bpm) <span className="text-red-500">*</span>
+                Pulse (bpm)
               </label>
               <input
                 type="number" min="20" max="300"
                 className={inp}
                 placeholder="e.g. 72"
-                {...register('pulse_rate', { required: 'Required' })}
+                {...register('pulse_rate')}
               />
-              {errors.pulse_rate && <p className={err}>{errors.pulse_rate.message}</p>}
             </div>
 
-            {/* Respiratory rate */}
+            {/* Respiratory rate — optional */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Resp. Rate (br/min) <span className="text-red-500">*</span>
+                Resp. Rate (br/min)
               </label>
               <input
                 type="number" min="5" max="60"
                 className={inp}
                 placeholder="e.g. 16"
-                {...register('respiratory_rate', { required: 'Required' })}
+                {...register('respiratory_rate')}
               />
-              {errors.respiratory_rate && <p className={err}>{errors.respiratory_rate.message}</p>}
             </div>
 
-            {/* SpO2 */}
+            {/* SpO2 — optional */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                SpO₂ (%) <span className="text-red-500">*</span>
+                SpO₂ (%)
               </label>
               <input
                 type="number" min="0" max="100"
                 className={inp}
                 placeholder="e.g. 98"
                 {...register('oxygen_saturation', {
-                  required: 'Required',
                   min: { value: 0, message: 'Min 0' },
                   max: { value: 100, message: 'Max 100' },
                 })}
@@ -248,22 +244,8 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Chief Complaint */}
-          <div className="mt-5">
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Chief Complaint <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              rows={3}
-              className={`${inp} resize-none`}
-              placeholder="Describe the patient's main complaint…"
-              {...register('chief_complaint', { required: 'Chief complaint is required.' })}
-            />
-            {errors.chief_complaint && <p className={err}>{errors.chief_complaint.message}</p>}
-          </div>
-
           {/* Triage Level */}
-          <div className="mt-5">
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-2">
               Triage Level <span className="text-red-500">*</span>
             </label>
@@ -273,12 +255,11 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
                   key={lv.value}
                   type="button"
                   onClick={() => setValue('triage_level', lv.value)}
-                  className={`relative flex flex-col items-center justify-center rounded-xl p-3 text-white text-xs font-bold border-2 transition-all
+                  className={`flex flex-col items-center justify-center rounded-xl p-3 text-white text-xs font-bold border-2 transition-all
                     ${lv.color}
                     ${triageLevel === lv.value
                       ? 'ring-2 ring-offset-2 ring-gray-800 scale-105'
-                      : 'opacity-70 hover:opacity-100'
-                    }
+                      : 'opacity-70 hover:opacity-100'}
                     ${lv.value === 3 ? 'text-gray-900' : ''}
                   `}
                 >
@@ -292,15 +273,15 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
           </div>
 
           {/* Pain Score */}
-          <div className="mt-5">
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-2">
-              Pain Score: {' '}
+              Pain Score:{' '}
               <span className="font-bold text-gray-800">{painScore}</span>
               {' '}{getPainEmoji(Number(painScore))}
             </label>
             <div className="flex items-center gap-3">
               <span className="text-lg">{getPainEmoji(0)}</span>
-              <div className="flex-1 relative">
+              <div className="flex-1">
                 <input
                   type="range" min="0" max="10" step="1"
                   className="w-full h-2 appearance-none rounded-full cursor-pointer accent-primary"
@@ -327,8 +308,7 @@ export default function TriageModal({ visit, onClose, onSuccess }) {
             Cancel
           </button>
           <button
-            type="submit"
-            form="triage-form"
+            type="button"
             disabled={isSubmitting}
             onClick={handleSubmit(onSubmit)}
             className="px-6 py-2 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors"

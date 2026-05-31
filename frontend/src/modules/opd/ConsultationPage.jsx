@@ -342,8 +342,9 @@ export default function ConsultationPage() {
     })();
   }, [visitId, navigate, reset]);
 
-  const buildPayload = (formData) => ({
+  const buildPayload = (formData, creating = false) => ({
     visit: parseInt(visitId),
+    ...(creating && user?.id ? { doctor: user.id } : {}),
     history_of_presenting_illness: formData.history_of_presenting_illness,
     review_of_systems: [...rosSelected].join('; '),
     examination_findings: formData.examination_findings,
@@ -358,11 +359,10 @@ export default function ConsultationPage() {
   const saveDraft = async (formData) => {
     setSaving(true);
     try {
-      const payload = { ...buildPayload(formData), status: 'DRAFT' };
+      const payload = { ...buildPayload(formData, !consultationId), status: 'DRAFT' };
       if (consultationId) {
         await opdService.updateConsultation(consultationId, payload);
       } else {
-        // Need doctor field — use current logged-in user for now (must be DOCTOR)
         const res = await opdService.createConsultation(payload);
         setConsultationId(res.data.id);
       }
@@ -381,7 +381,7 @@ export default function ConsultationPage() {
     if (!window.confirm('Sign off this consultation? The form will become read-only.')) return;
     setSaving(true);
     try {
-      const payload = { ...buildPayload(formData), status: 'SIGNED_OFF' };
+      const payload = { ...buildPayload(formData, !consultationId), status: 'SIGNED_OFF' };
       if (consultationId) {
         await opdService.updateConsultation(consultationId, payload);
       } else {

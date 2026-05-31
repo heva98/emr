@@ -44,13 +44,6 @@ export default function QueueCard({ visit, onTriage }) {
         <p className="text-xs text-gray-400 mt-0.5">{visit.patient.patient_id}</p>
       </div>
 
-      {/* Chief complaint */}
-      {triage?.chief_complaint && (
-        <p className="text-xs text-gray-600 line-clamp-2 bg-gray-50 rounded px-2 py-1">
-          {triage.chief_complaint}
-        </p>
-      )}
-
       {/* Doctor / room */}
       {(visit.doctor_name || visit.room_name) && (
         <div className="flex items-center gap-3 text-xs text-gray-500">

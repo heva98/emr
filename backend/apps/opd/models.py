@@ -8,14 +8,6 @@ from apps.patients.models import PatientVisit
 
 
 class Triage(models.Model):
-    TRIAGE_LEVEL_CHOICES = [
-        (1, 'Resuscitation'),
-        (2, 'Emergency'),
-        (3, 'Urgent'),
-        (4, 'Semi-urgent'),
-        (5, 'Non-urgent'),
-    ]
-
     visit = models.OneToOneField(
         PatientVisit, on_delete=models.PROTECT, related_name='triage'
     )
@@ -26,24 +18,20 @@ class Triage(models.Model):
     )
     recorded_at = models.DateTimeField(auto_now_add=True)
     weight_kg = models.DecimalField(max_digits=4, decimal_places=1)
-    height_cm = models.DecimalField(max_digits=4, decimal_places=1)
+    height_cm = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     bmi = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, editable=False)
     temperature_celsius = models.DecimalField(max_digits=3, decimal_places=1)
-    blood_pressure_systolic = models.IntegerField()
-    blood_pressure_diastolic = models.IntegerField()
-    pulse_rate = models.IntegerField()
-    respiratory_rate = models.IntegerField()
+    blood_pressure_systolic = models.IntegerField(null=True, blank=True)
+    blood_pressure_diastolic = models.IntegerField(null=True, blank=True)
+    pulse_rate = models.IntegerField(null=True, blank=True)
+    respiratory_rate = models.IntegerField(null=True, blank=True)
     oxygen_saturation = models.IntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
-    )
-    chief_complaint = models.TextField()
-    triage_level = models.PositiveSmallIntegerField(choices=TRIAGE_LEVEL_CHOICES)
-    pain_score = models.IntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(10)]
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
 
     class Meta:
-        ordering = ['triage_level', 'recorded_at']
+        ordering = ['recorded_at']
 
     def __str__(self):
         return f"Triage — {self.visit}"
@@ -59,7 +47,6 @@ class Triage(models.Model):
 def _triage_post_save(sender, instance, created, **kwargs):
     if created:
         visit = instance.visit
-        visit.triage_level = instance.triage_level
         visit.status = PatientVisit.Status.TRIAGE_DONE
         visit.save()
 
