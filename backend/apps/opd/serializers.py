@@ -73,12 +73,13 @@ class QueueTriageSerializer(serializers.ModelSerializer):
 class QueueVisitSerializer(serializers.ModelSerializer):
     patient = QueuePatientSerializer(read_only=True)
     triage = serializers.SerializerMethodField()
+    doctor_info = serializers.SerializerMethodField()
 
     class Meta:
         model = PatientVisit
         fields = [
             'id', 'visit_number', 'patient', 'visit_type',
-            'status', 'triage_level', 'created_at', 'triage',
+            'status', 'triage_level', 'created_at', 'triage', 'doctor_info',
         ]
 
     def get_triage(self, obj):
@@ -86,3 +87,15 @@ class QueueVisitSerializer(serializers.ModelSerializer):
             return QueueTriageSerializer(obj.triage).data
         except Triage.DoesNotExist:
             return None
+
+    def get_doctor_info(self, obj):
+        try:
+            c = obj.consultation
+            if c and c.doctor_id:
+                return {
+                    'id': c.doctor_id,
+                    'name': c.doctor.get_full_name() or c.doctor.username,
+                }
+        except Exception:
+            pass
+        return None

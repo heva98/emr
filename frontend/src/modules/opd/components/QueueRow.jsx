@@ -1,4 +1,4 @@
-import { Clock, Activity, Stethoscope } from 'lucide-react';
+import { Clock, Activity, Stethoscope, DoorOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '../../patients/components/StatusBadge';
 import InitialsAvatar from '../../patients/components/InitialsAvatar';
@@ -17,7 +17,7 @@ const VISIT_TYPE_LABELS = {
   FOLLOW_UP: 'Follow-Up',
 };
 
-export default function QueueRow({ visit, onTriage }) {
+export default function QueueRow({ visit, onTriage, roomNumber }) {
   const navigate = useNavigate();
   const triage = visit.triage;
   const isTriage  = visit.status === 'WAITING' && !triage;
@@ -33,7 +33,15 @@ export default function QueueRow({ visit, onTriage }) {
             <p className="text-sm font-semibold text-gray-800 leading-tight">
               {visit.patient.name}
             </p>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">{visit.patient.patient_id}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-400 font-mono">{visit.patient.patient_id}</p>
+              {roomNumber && (
+                <span className="flex items-center gap-0.5 text-xs font-medium text-primary">
+                  <DoorOpen className="w-3 h-3" />
+                  {roomNumber}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </td>

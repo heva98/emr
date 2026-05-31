@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { opdService } from '../../services/opdService';
+import { roomsService } from '../../services/roomsService';
 import MetricCard from '../patients/components/MetricCard';
 import QueueCard from './components/QueueCard';
 import QueueRow from './components/QueueRow';
@@ -26,18 +27,28 @@ export default function OPDQueuePage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [viewMode, setViewMode]     = useState('list'); // 'list' | 'grid'
   const [triageVisit, setTriageVisit] = useState(null);
+  const [roomsByDoctor, setRoomsByDoctor] = useState({});
   const intervalRef = useRef(null);
   const countRef    = useRef(null);
 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [queueRes, statsRes] = await Promise.all([
+      const [queueRes, statsRes, assignRes] = await Promise.all([
         opdService.getQueue(),
         opdService.getStats(),
+        roomsService.getTodayAssignments().catch(() => ({ data: [] })),
       ]);
       setQueue(queueRes.data.results ?? queueRes.data);
       setStats(statsRes.data);
+
+      // Build doctorId → room_number lookup from today's active assignments
+      const assignments = assignRes.data.results ?? assignRes.data;
+      const map = {};
+      assignments.forEach((a) => {
+        map[a.doctor] = a.room_number;
+      });
+      setRoomsByDoctor(map);
     } catch {
       if (!silent) toast.error('Failed to load OPD queue.');
     } finally {
@@ -193,6 +204,7 @@ export default function OPDQueuePage() {
                     <QueueRow
                       key={visit.id}
                       visit={visit}
+                      roomNumber={roomsByDoctor[visit.doctor_info?.id] ?? null}
                       onTriage={(v) => setTriageVisit(v)}
                     />
                   ))}
@@ -205,6 +217,7 @@ export default function OPDQueuePage() {
                 <QueueCard
                   key={visit.id}
                   visit={visit}
+                  roomNumber={roomsByDoctor[visit.doctor_info?.id] ?? null}
                   onTriage={(v) => setTriageVisit(v)}
                 />
               ))}

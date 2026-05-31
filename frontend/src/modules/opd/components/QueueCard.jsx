@@ -14,7 +14,7 @@ function useWaitTime(createdAt) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-export default function QueueCard({ visit, onTriage }) {
+export default function QueueCard({ visit, onTriage, roomNumber }) {
   const navigate = useNavigate();
   const waitTime = useWaitTime(visit.created_at);
   const triage = visit.triage;
@@ -41,18 +41,18 @@ export default function QueueCard({ visit, onTriage }) {
       </div>
 
       {/* Doctor / room */}
-      {(visit.doctor_name || visit.room_name) && (
+      {(visit.doctor_info || roomNumber) && (
         <div className="flex items-center gap-3 text-xs text-gray-500">
-          {visit.doctor_name && (
+          {visit.doctor_info && (
             <span className="flex items-center gap-1">
               <UserRound className="w-3 h-3" />
-              {visit.doctor_name}
+              {visit.doctor_info.name}
             </span>
           )}
-          {visit.room_name && (
-            <span className="flex items-center gap-1">
+          {roomNumber && (
+            <span className="flex items-center gap-1 font-medium text-gray-700">
               <DoorOpen className="w-3 h-3" />
-              {visit.room_name}
+              Room {roomNumber}
             </span>
           )}
         </div>

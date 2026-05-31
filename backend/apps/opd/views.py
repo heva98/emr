@@ -70,7 +70,7 @@ class QueueView(generics.ListAPIView):
                     PatientVisit.Status.TRIAGE_DONE,
                 ],
             )
-            .select_related('patient', 'triage')
+            .select_related('patient', 'triage', 'consultation__doctor')
             .order_by(F('triage_level').asc(nulls_last=True), 'created_at')
         )
 
