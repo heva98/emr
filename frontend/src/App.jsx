@@ -13,6 +13,10 @@ import ConsultationPage from "./modules/opd/ConsultationPage";
 import LabQueuePage from "./modules/laboratory/LabQueuePage";
 import LabOrderDetailPage from "./modules/laboratory/LabOrderDetailPage";
 import LabResultReport from "./modules/laboratory/LabResultReport";
+import DispensingQueuePage from "./modules/pharmacy/dispensing/DispensingQueuePage";
+import DispensingDetailPage from "./modules/pharmacy/dispensing/DispensingDetailPage";
+import StoreOverviewPage from "./modules/pharmacy/store/StoreOverviewPage";
+import ReceiveStockPage from "./modules/pharmacy/store/ReceiveStockPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -51,8 +55,10 @@ export default function App() {
               <Route path="/opd/consultation/:visitId" element={<ConsultationPage />} />
               <Route path="/laboratory" element={<LabQueuePage />} />
               <Route path="/laboratory/order/:id" element={<LabOrderDetailPage />} />
-              <Route path="/pharmacy/dispensing" element={<PlaceholderPage title="Dispensing Pharmacy" />} />
-              <Route path="/pharmacy/store" element={<PlaceholderPage title="Main Store" />} />
+              <Route path="/pharmacy/dispensing" element={<DispensingQueuePage />} />
+              <Route path="/pharmacy/dispensing/:prescriptionId" element={<DispensingDetailPage />} />
+              <Route path="/pharmacy/store" element={<StoreOverviewPage />} />
+              <Route path="/pharmacy/store/receive" element={<ReceiveStockPage />} />
               <Route path="/cashier" element={<PlaceholderPage title="Cashier / Billing" />} />
               <Route path="/rooms" element={<PlaceholderPage title="Room Management" />} />
               <Route path="/reports" element={<PlaceholderPage title="Reports & Analytics" />} />
